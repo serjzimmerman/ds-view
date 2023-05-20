@@ -7,6 +7,13 @@
  * ----------------------------------------------------------------------------
  */
 
+/**
+ * @brief Interface for working with Rigol DS series scopes. Currently implements a concrete class for communication via
+ * TCP.
+ *
+ * @file device.hpp
+ */
+
 #pragma once
 
 #include "detail/common.hpp"
@@ -26,6 +33,10 @@
 #include <sstream>
 #include <vector>
 
+/**
+ * @namespace ds
+ * @brief Contains everything related to dslib.
+ */
 namespace ds
 {
 
@@ -35,19 +46,50 @@ struct block_query_t
 
 static constexpr auto block_query = block_query_t{};
 
+/**
+ * @brief Interface for any DS series Scope. Abstracts away SCPI operations which can be transported via USBTMC or
+ * TCP/IP.
+ */
 class idevice
 {
   public:
+    //! A view into a binary/text buffer
     using buffer_view = std::span<const char>;
+
+    //! Owning buffer
     using buffer_type = std::vector<char>;
+
+    //! Type used to represent timeout duration.
     using timeout_type = std::chrono::milliseconds;
 
+    //! A sentinel used to represent an infinite timeout duration.
     static constexpr auto no_timeout = timeout_type{ 0 };
+
+    //! Convenience default value for timeout.
     static constexpr auto default_timeout = std::chrono::seconds{ 1 };
 
   public:
-    [[nodiscard]] virtual auto read_until( as_vector_t, timeout_type, std::string_view delim ) -> buffer_type = 0;
-    [[nodiscard]] virtual auto read_until( as_string_t, timeout_type, std::string_view delim ) -> std::string = 0;
+    /**
+     * @brief Synchronous read until a sentinel.
+     *
+     * @param time Timeout duration. If it occurs then an exception is thrown.
+     * @param delim Delimiter to read the data until. Note that this delimiter is not a part of the returned value.
+     *
+     * @return This overload with a dummy parameter as_vector_t returns a buffer_type.
+     */
+    [[nodiscard]] virtual auto read_until( as_vector_t, timeout_type time, std::string_view delim ) -> buffer_type = 0;
+
+    /**
+     * @brief Synchronous read until a sentinel.
+     *
+     * @param time Timeout duration. If it occurs then an exception is thrown.
+     * @param delim Delimiter to read the data until. Note that this delimiter is not a part of the returned value.
+     *
+     * @return This overload with a dummy parameter as_string_t returns a string type for convenience.
+     * @remark It pains me to make two overloads with basically the same meaning. However, I don't know of a way to
+     * convert a vector into a string without additional copies. Maybe something should be done about this.
+     */
+    [[nodiscard]] virtual auto read_until( as_string_t, timeout_type time, std::string_view delim ) -> std::string = 0;
 
     [[nodiscard]] virtual auto read_n( as_string_t, std::size_t n, timeout_type ) -> std::string = 0;
     [[nodiscard]] virtual auto read_n( as_vector_t, std::size_t n, timeout_type ) -> buffer_type = 0;
@@ -121,6 +163,9 @@ class idevice
     virtual ~idevice() = default;
 };
 
+/**
+ * @brief Implementation of SCPI Rigol DS Scope client over TCP/IP sockets.
+ */
 class lan_device : public idevice
 {
   public:

@@ -44,7 +44,7 @@ using global_category = basic_category<root_category, fixstr::fixed_string{ "" }
 static_assert( scpi_category<root_category> );
 static_assert( scpi_category<global_category> );
 
-template <scpi_category category_t, auto command_name_p, typename query_parser_t, typename command_args_tuple>
+template <scpi_category category_t, auto command_name_p, typename query_parser_t, typename command_args_tuple = std::tuple<>>
 class basic_command
 {
   public:
