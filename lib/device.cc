@@ -44,7 +44,7 @@ lan_device::write( buffer_view data )
 auto
 lan_device::read_until( as_vector_t, timeout_type timeout, std::string_view delim ) -> buffer_type
 {
-    return read_impl<buffer_type>( timeout, [ delim ]( auto& sock, auto& buf, auto&& handler ) {
+    return read_impl<buffer_type>( timeout, delim.length(), [ delim ]( auto& sock, auto& buf, auto&& handler ) {
         return asio::async_read_until( sock, buf, delim, handler );
     } );
 }
@@ -52,7 +52,7 @@ lan_device::read_until( as_vector_t, timeout_type timeout, std::string_view deli
 auto
 lan_device::read_n( as_vector_t, std::size_t n, timeout_type timeout ) -> buffer_type
 {
-    return read_impl<buffer_type>( timeout, [ n ]( auto& sock, auto& buf, auto&& handler ) {
+    return read_impl<buffer_type>( timeout, 0, [ n ]( auto& sock, auto& buf, auto&& handler ) {
         return asio::async_read( sock, buf, asio::transfer_exactly( n ), handler );
     } );
 }
@@ -60,7 +60,7 @@ lan_device::read_n( as_vector_t, std::size_t n, timeout_type timeout ) -> buffer
 auto
 lan_device::read_until( as_string_t, timeout_type timeout, std::string_view delim ) -> std::string
 {
-    return read_impl<std::string>( timeout, [ delim ]( auto& sock, auto& buf, auto&& handler ) {
+    return read_impl<std::string>( timeout, delim.length(), [ delim ]( auto& sock, auto& buf, auto&& handler ) {
         return asio::async_read_until( sock, buf, delim, handler );
     } );
 }
@@ -68,7 +68,7 @@ lan_device::read_until( as_string_t, timeout_type timeout, std::string_view deli
 auto
 lan_device::read_n( as_string_t, std::size_t n, timeout_type timeout ) -> std::string
 {
-    return read_impl<std::string>( timeout, [ n ]( auto& sock, auto& buf, auto&& handler ) {
+    return read_impl<std::string>( timeout, 0, [ n ]( auto& sock, auto& buf, auto&& handler ) {
         return asio::async_read( sock, buf, asio::transfer_exactly( n ), handler );
     } );
 }

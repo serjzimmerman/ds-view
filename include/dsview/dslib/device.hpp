@@ -10,8 +10,10 @@
 #pragma once
 
 #include "detail/common.hpp"
-
 #include "scpi/commands/common.hpp"
+
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include <fmt/format.h>
 
@@ -21,6 +23,7 @@
 #include <iostream>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <vector>
 
 namespace ds
@@ -51,29 +54,58 @@ class idevice
 
     virtual void write( buffer_view data ) = 0; //< This overload will win for a string literal
 
-  public:
+  private:
     template <typename command_t>
         requires ( command_t::has_query )
-    auto query( timeout_type time = default_timeout )
+    auto query_impl( timeout_type time = default_timeout )
     {
         const auto message = fmt::format( "{}\n", std::string_view{ command_t::get_query_string() } );
         write( message );
-        auto result = read_until( as_string, time, "\n" ); // TODO[]: Make this customizable for commands that query
-                                                           // binary data. Plus add support for concatenated commands.
+        auto result = read_until( as_string, time, "\n" );
         return command_t::query_parser::parse( result );
     }
 
-    template <typename command_t>
-        requires ( command_t::has_query )
-    auto query( block_query_t, timeout_type time = default_timeout )
-        -> std::optional<std::invoke_result_t<decltype( &command_t::query_parser::parse ), std::string_view>>
+    template <typename... commands_t>
+        requires ( ( sizeof...( commands_t ) > 1 ) && ( commands_t::has_query && ... ) )
+    auto query_impl( timeout_type time = default_timeout )
+        -> std::tuple<std::invoke_result_t<decltype( &commands_t::query_parser::parse ), std::string_view>...>
     {
-        if ( auto res = query<scpi::common::opc_cmd>( time ); !res )
+        auto ss = std::stringstream{};
+        ( ss << ... << fmt::format( "{}\n", std::string_view{ commands_t::get_query_string() } ) );
+        const auto message = ss.str();
+        write( message );
+
+        const auto result = read_until( as_string, time, "\n" );
+        auto split = std::vector<std::string_view>{};
+        boost::split( split, result, boost::is_any_of( ";" ) );
+
+        auto tuple_maker = [ &split]<auto... I>( std::index_sequence<I...> )
+        {
+            return std::tuple{ commands_t::query_parser::parse( split.at( I ) )... };
+        };
+
+        return tuple_maker( std::make_index_sequence<sizeof...( commands_t )>{} );
+    }
+
+  public:
+    template <typename... commands_t>
+        requires ( commands_t::has_query && ... )
+    auto query( block_query_t, timeout_type time = no_timeout )
+        -> std::optional<decltype( query_impl<commands_t...>() )>
+    {
+        if ( auto res = query_impl<scpi::common::opc_cmd>( time ); !res )
         {
             return std::nullopt;
         }
 
-        return std::optional{ query<command_t>( time ) };
+        return std::optional{ query_impl<commands_t...>( time ) };
+    }
+
+    template <typename... commands_t>
+        requires ( commands_t::has_query && ... )
+    auto query( timeout_type time = no_timeout ) -> decltype( query_impl<commands_t...>() )
+    {
+        return query_impl<commands_t...>( time );
     }
 
     template <typename command_t, typename... args_t>
@@ -108,7 +140,8 @@ class lan_device : public idevice
   private:
     auto resolve( std::string_view host, std::string_view port ) -> tcp::endpoint;
 
-    template <typename result_t> auto read_impl( timeout_type timeout, auto async_func ) -> result_t;
+    template <typename result_t>
+    auto read_impl( timeout_type timeout, size_t suffix_size, auto async_func ) -> result_t;
 
   private:
     boost::asio::io_service m_service;
@@ -119,7 +152,7 @@ class lan_device : public idevice
 
 template <typename result_t>
 auto
-lan_device::read_impl( timeout_type timeout, auto async_func ) -> result_t
+lan_device::read_impl( timeout_type timeout, size_t suffix_size, auto async_func ) -> result_t
 {
     auto timer_handler = [ &sock = m_sock ]( boost::system::error_code code ) {
         if ( code == asio::error::operation_aborted )
@@ -144,7 +177,9 @@ lan_device::read_impl( timeout_type timeout, auto async_func ) -> result_t
     }
 
     result_t res;
-    auto read_handler = [ this, &res, &timer ]( boost::system::error_code code, std::size_t num_transferred ) {
+    auto read_handler = [ this, &res, &timer, suffix_size ](
+                            boost::system::error_code code,
+                            std::size_t num_transferred ) {
         if ( code == asio::error::operation_aborted )
         {
             return;
@@ -158,10 +193,13 @@ lan_device::read_impl( timeout_type timeout, auto async_func ) -> result_t
         }
 
         res.reserve( num_transferred );
-        std::copy(
+        std::copy_n(
             std::istreambuf_iterator<char>{ &m_streambuf },
-            std::istreambuf_iterator<char>{},
+            num_transferred - suffix_size,
             std::back_inserter( res ) );
+
+        std::istream{ &m_streambuf }.ignore(
+            std::numeric_limits<std::streamsize>::max() ); // [NOTE]: Might be error prone
 
         assert( m_streambuf.size() == 0 && "Buffer should have been emptied" );
     };

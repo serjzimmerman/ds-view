@@ -56,7 +56,7 @@ struct idn_query_parser
         static const model_table model_parser;
         static const auto parser = x3::expect
             [ x3::lit( "RIGOL TECHNOLOGIES" ) >> ',' >> model_parser >> ',' >> +( x3::char_ - ',' ) >> ',' >>
-              +( x3::char_ - '\n' ) >> '\n' ];
+              +( x3::char_ ) ];
 
         auto result = identify_result{};
         x3::parse( begin( str ), end( str ), parser, result );
@@ -68,7 +68,7 @@ struct opc_query_parser
 {
     [[nodiscard]] static auto parse( std::string_view str ) -> bool
     {
-        static const auto parser = x3::expect[ x3::int_ >> '\n' ];
+        static const auto parser = x3::expect[ x3::int_ ];
         auto result = int{};
         x3::parse( begin( str ), end( str ), parser, result );
 
