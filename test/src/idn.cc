@@ -51,7 +51,7 @@ TEST( dslib, idn_response ) // [NOLINT]
         {
             for ( const auto& serial : serial_numbers )
             {
-                auto response = fmt::format( "RIGOL TECHNOLOGIES,{},{},{}\n", model_name, serial, version );
+                auto response = fmt::format( "RIGOL TECHNOLOGIES,{},{},{}", model_name, serial, version );
                 auto parsed = parser::parse( response );
 
                 EXPECT_EQ( parsed.model, model );
