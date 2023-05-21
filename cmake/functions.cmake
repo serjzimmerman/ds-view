@@ -36,7 +36,8 @@ function(enable_warnings TARGET_NAME)
                     -Wformat=2
                     -Wimplicit-fallthrough
                     -Wno-missing-field-initializers
-                    -Wno-nullability-extension)
+                    -Wno-nullability-extension
+                    -Wglobal-constructors)
     elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
         target_compile_options(
             ${TARGET_NAME}
