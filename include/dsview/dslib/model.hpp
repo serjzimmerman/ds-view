@@ -89,8 +89,6 @@ create_sorted_model_arr()
     return unsorted;
 }
 
-static constexpr auto model_name_arr = create_sorted_model_arr();
-
 } // namespace detail
 
 //! @brief Parses model string representation.
@@ -98,14 +96,15 @@ static constexpr auto model_name_arr = create_sorted_model_arr();
 [[nodiscard]] constexpr auto
 to_model( std::string_view model_name ) -> ds_model
 {
-    const auto start = begin( detail::model_name_arr );
-    const auto finish = end( detail::model_name_arr );
+    constexpr auto model_name_arr = detail::create_sorted_model_arr();
 
-    auto found = std::lower_bound( start, finish, model_name, []( auto&& lhs, std::string_view to_find ) {
-        return lhs.first < to_find;
-    } );
+    auto found = std::lower_bound(
+        begin( model_name_arr ),
+        end( model_name_arr ),
+        model_name,
+        []( auto&& lhs, std::string_view to_find ) { return lhs.first < to_find; } );
 
-    if ( found == finish || found->first != model_name )
+    if ( found == end( model_name_arr ) || found->first != model_name )
     {
         throw std::out_of_range{ "Model name is unknown" };
     }
@@ -175,19 +174,19 @@ create_sorted_capabilities_arr()
     return unsorted;
 }
 
-static constexpr auto capabilities_arr = create_sorted_capabilities_arr();
-
 } // namespace detail
 
 [[nodiscard]] constexpr auto
 get_model_capabilities( ds_model model ) -> model_capabilities
 {
-    const auto start = begin( detail::capabilities_arr );
-    const auto finish = end( detail::capabilities_arr );
+    constexpr auto capabilities_arr = detail::create_sorted_capabilities_arr();
 
-    auto found = std::lower_bound( start, finish, model, []( auto&& lhs, ds_model mod ) { return lhs.first < mod; } );
+    auto found =
+        std::lower_bound( begin( capabilities_arr ), end( capabilities_arr ), model, []( auto&& lhs, ds_model mod ) {
+            return lhs.first < mod;
+        } );
 
-    if ( found == finish || found->first != model )
+    if ( found == end( capabilities_arr ) || found->first != model )
     {
         throw std::out_of_range{ "Model is not found" };
     }

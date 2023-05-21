@@ -19,8 +19,8 @@ struct as_string_t {};
 struct as_vector_t {};
 // clang-format on
 
-static constexpr auto as_string = as_string_t{};
-static constexpr auto as_vector = as_vector_t{};
+inline constexpr auto as_string = as_string_t{};
+inline constexpr auto as_vector = as_vector_t{};
 
 namespace asio = boost::asio;
 using tcp = asio::ip::tcp;

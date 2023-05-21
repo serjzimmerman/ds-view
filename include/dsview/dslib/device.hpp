@@ -46,7 +46,7 @@ struct block_query_t
 };
 
 //! @brief Object of type block_query_t for passing into functions for blocking overloads.
-static constexpr auto block_query = block_query_t{};
+inline constexpr auto block_query = block_query_t{};
 
 /**
  * @brief Interface for any DS series Scope. Abstracts away SCPI operations which can be transported via USBTMC or

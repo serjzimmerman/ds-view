@@ -42,13 +42,13 @@ TEST( dslib, idn_model ) // [NOLINT]
     }
 }
 
-static constexpr auto versions = std::array{
+constexpr auto versions = std::array{
     "00.04.05.SP2",
     "00.04.04.SP3",
     "00.04.04.SP1" //
 };
 
-static constexpr auto serial_numbers = std::array{
+constexpr auto serial_numbers = std::array{
     "DS1ZA170XXXXXX",
     "DS1ZA2XXXXXXXX" //
 };
