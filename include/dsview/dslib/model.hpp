@@ -20,22 +20,22 @@
  * @file model.hpp
  */
 
-//! @namespace ds
+//! @namespace
 namespace ds
 {
 
-//! Types of Scope models
+//! @brief Types of Scope models
 enum class ds_model
 {
-    e_mso1104z_s,     //< MSO1104Z-S
-    e_mso1074z_s,     //< MSO1074Z-S
-    e_mso1104z,       //< MSO1104Z
-    e_mso1074z,       //< MSO1074Z
-    e_ds1104z_s_plus, //< DS1104Z-S Plus
-    e_ds1074z_s_plus, //< DS1074Z-S Plus
-    e_ds1104z_plus,   //< DS1104Z Plus
-    e_ds1074z_plus,   //< DS1074Z Plus
-    e_ds1054z         //< DS1054Z
+    e_mso1104z_s,     //!< MSO1104Z-S
+    e_mso1074z_s,     //!< MSO1074Z-S
+    e_mso1104z,       //!< MSO1104Z
+    e_mso1074z,       //!< MSO1074Z
+    e_ds1104z_s_plus, //!< DS1104Z-S Plus
+    e_ds1074z_s_plus, //!< DS1074Z-S Plus
+    e_ds1104z_plus,   //!< DS1104Z Plus
+    e_ds1074z_plus,   //!< DS1074Z Plus
+    e_ds1054z         //!< DS1054Z
 };
 
 //! Convert model to a readable name. These names are taken from the technical documentaion.
@@ -112,5 +112,87 @@ to_model( std::string_view model_name ) -> ds_model
 
     return found->second;
 };
+
+//! @brief Analog bandwidth
+enum class model_bandwidth
+{
+    e_50mhz,  //!< 50 MHz
+    e_70mhz,  //!< 70 MHz
+    e_100mhz, //!< 100 MHz
+};
+
+//! @brief Analog channel count
+enum class model_analog_channels
+{
+    e_count_2, //!< 2 Channels
+    e_count_4, //!< 4 Channels (for DS1000 series)
+};
+
+//! @brief Digital channel count
+enum class model_digital_channels
+{
+    e_count_none, //!< No digital input
+    e_count_16,   //!< 16 Digital channels (not supported by DS1054Z)
+};
+
+struct model_capabilities
+{
+    model_bandwidth analog_bandwidth;
+    model_analog_channels analog_channels;
+    model_digital_channels digital_channels;
+};
+
+namespace detail
+{
+
+consteval auto
+create_sorted_capabilities_arr()
+{
+    auto unsorted = std::to_array<std::pair<ds_model, model_capabilities>>(
+        { { ds_model::e_mso1104z_s,
+            { model_bandwidth::e_100mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_mso1074z_s,
+            { model_bandwidth::e_70mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_mso1104z,
+            { model_bandwidth::e_100mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_mso1074z,
+            { model_bandwidth::e_70mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_ds1104z_s_plus,
+            { model_bandwidth::e_100mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_ds1074z_s_plus,
+            { model_bandwidth::e_70mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_ds1104z_plus,
+            { model_bandwidth::e_100mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_ds1074z_plus,
+            { model_bandwidth::e_70mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_16 } },
+          { ds_model::e_ds1054z,
+            { model_bandwidth::e_50mhz, model_analog_channels::e_count_4, model_digital_channels::e_count_none } } } );
+
+    std::sort( begin( unsorted ), end( unsorted ), [ less = std::less<>{} ]( auto&& lhs, auto&& rhs ) {
+        return less( lhs.first, rhs.first );
+    } );
+
+    return unsorted;
+}
+
+static constexpr auto capabilities_arr = create_sorted_capabilities_arr();
+
+} // namespace detail
+
+[[nodiscard]] constexpr auto
+get_model_capabilities( ds_model model ) -> model_capabilities
+{
+    const auto start = begin( detail::capabilities_arr );
+    const auto finish = end( detail::capabilities_arr );
+
+    auto found = std::lower_bound( start, finish, model, []( auto&& lhs, ds_model mod ) { return lhs.first < mod; } );
+
+    if ( found == finish || found->first != model )
+    {
+        throw std::out_of_range{ "Model is not found" };
+    }
+
+    return found->second;
+}
 
 } // namespace ds
