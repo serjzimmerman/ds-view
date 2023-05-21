@@ -19,9 +19,9 @@ using parser = command::query_parser;
 using ds::to_model;
 
 auto
-names_to_models() -> std::unordered_map<std::string_view, ds::ds_model>
+names_to_models() -> const std::unordered_map<std::string_view, ds::ds_model>&
 {
-    return {
+    static const auto map = std::unordered_map<std::string_view, ds::ds_model>{
         { "MSO1104Z-S", ds::ds_model::e_mso1104z_s },
         { "MSO1074Z-S", ds::ds_model::e_mso1074z_s },
         { "MSO1104Z", ds::ds_model::e_mso1104z },
@@ -31,6 +31,8 @@ names_to_models() -> std::unordered_map<std::string_view, ds::ds_model>
         { "DS1104Z Plus", ds::ds_model::e_ds1104z_plus },
         { "DS1074Z Plus", ds::ds_model::e_ds1074z_plus },
         { "DS1054Z", ds::ds_model::e_ds1054z } };
+
+    return map;
 }
 
 TEST( dslib, idn_model ) // [NOLINT]
@@ -55,8 +57,8 @@ constexpr auto serial_numbers = std::array{
 
 TEST( dslib, idn_response ) // [NOLINT]
 {
-    const auto names = names_to_models();
-    for ( auto&& [ model_pair, version, serial ] : ranges::views::cartesian_product( names, versions, serial_numbers ) )
+    for ( auto&& [ model_pair, version, serial ] :
+          ranges::views::cartesian_product( names_to_models(), versions, serial_numbers ) )
     {
         auto&& [ model_name, model ] = model_pair;
 

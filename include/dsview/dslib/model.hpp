@@ -89,6 +89,8 @@ create_sorted_model_arr()
     return unsorted;
 }
 
+constexpr inline auto model_name_arr = detail::create_sorted_model_arr();
+
 } // namespace detail
 
 //! @brief Parses model string representation.
@@ -96,15 +98,13 @@ create_sorted_model_arr()
 [[nodiscard]] constexpr auto
 to_model( std::string_view model_name ) -> ds_model
 {
-    constexpr auto model_name_arr = detail::create_sorted_model_arr();
-
     auto found = std::lower_bound(
-        begin( model_name_arr ),
-        end( model_name_arr ),
+        begin( detail::model_name_arr ),
+        end( detail::model_name_arr ),
         model_name,
         []( auto&& lhs, std::string_view to_find ) { return lhs.first < to_find; } );
 
-    if ( found == end( model_name_arr ) || found->first != model_name )
+    if ( found == end( detail::model_name_arr ) || found->first != model_name )
     {
         throw std::out_of_range{ "Model name is unknown" };
     }
