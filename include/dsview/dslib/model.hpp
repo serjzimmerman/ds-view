@@ -15,22 +15,30 @@
 #include <stdexcept>
 #include <string_view>
 
+/**
+ * @brief Definitions of Rigol DS Scope model names and utilities for parsing model names.
+ * @file model.hpp
+ */
+
+//! @namespace ds
 namespace ds
 {
 
+//! Types of Scope models
 enum class ds_model
 {
-    e_mso1104z_s,
-    e_mso1074z_s,
-    e_mso1104z,
-    e_mso1074z,
-    e_ds1104z_s_plus,
-    e_ds1074z_s_plus,
-    e_ds1104z_plus,
-    e_ds1074z_plus,
-    e_ds1054z
+    e_mso1104z_s,     //< MSO1104Z-S
+    e_mso1074z_s,     //< MSO1074Z-S
+    e_mso1104z,       //< MSO1104Z
+    e_mso1074z,       //< MSO1074Z
+    e_ds1104z_s_plus, //< DS1104Z-S Plus
+    e_ds1074z_s_plus, //< DS1074Z-S Plus
+    e_ds1104z_plus,   //< DS1104Z Plus
+    e_ds1074z_plus,   //< DS1074Z Plus
+    e_ds1054z         //< DS1054Z
 };
 
+//! Convert model to a readable name. These names are taken from the technical documentaion.
 [[nodiscard]] constexpr auto
 to_string( ds_model model ) -> std::string_view
 {
@@ -85,6 +93,8 @@ static constexpr auto model_name_arr = create_sorted_model_arr();
 
 } // namespace detail
 
+//! @brief Parses model string representation.
+//! @throws std::out_of_range If the name does not correspond to any model.
 [[nodiscard]] constexpr auto
 to_model( std::string_view model_name ) -> ds_model
 {

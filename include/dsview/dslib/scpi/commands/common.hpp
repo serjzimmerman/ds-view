@@ -208,7 +208,7 @@ using sre_cmd = basic_command<root_category, fixstr::fixed_string{ "*SRE" }, par
 using stb_cmd = basic_command<root_category, fixstr::fixed_string{ "*STB" }, parser::uint_parser>;
 
 /**
- * @brief Perform a self-test and then return the seilf-test results.
+ * @brief Perform a self-test and then return the self-test results.
  * @note Syntax: *TST?
  * @note Return format: The query returns a decimal integer.
  */

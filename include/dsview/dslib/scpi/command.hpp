@@ -28,7 +28,7 @@ struct root_category
 };
 
 template <typename T> // clang-format off
-concept scpi_category = requires () {
+concept scpi_category = requires {
     T::path;
     { T::concat( fixstr::fixed_string{ "" } ) } -> std::convertible_to<std::string_view>;
 }; // clang-format on
@@ -44,7 +44,20 @@ using global_category = basic_category<root_category, fixstr::fixed_string{ "" }
 static_assert( scpi_category<root_category> );
 static_assert( scpi_category<global_category> );
 
-template <scpi_category category_t, auto command_name_p, typename query_parser_t, typename command_args_tuple = std::tuple<>>
+// clang-format off
+template <typename T>
+concept scpi_query_parser = requires {
+    { T::parse(std::declval<std::string_view>()) };
+    requires !std::is_void_v<decltype(T::parse(std::declval<std::string_view>()))>;
+};
+// clang-format on
+
+template <
+    scpi_category category_t,
+    auto command_name_p,
+    typename query_parser_t,
+    typename command_args_tuple = std::tuple<>>
+    requires ( std::is_void_v<query_parser_t> || scpi_query_parser<query_parser_t> )
 class basic_command
 {
   public:

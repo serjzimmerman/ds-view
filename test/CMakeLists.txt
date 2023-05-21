@@ -5,5 +5,5 @@ set(DSLIB_TEST_SOURCES
 
 add_executable(dslib_test ${DSLIB_TEST_SOURCES})
 gtest_add_tests(TARGET dslib_test ${DSLIB_TEST_SOURCES})
-target_link_libraries(dslib_test dslib gtest gtest_main fmt)
+target_link_libraries(dslib_test dslib gtest gtest_main fmt range-v3)
 add_test(dslib_test dslib_test)

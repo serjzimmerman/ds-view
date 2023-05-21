@@ -40,10 +40,12 @@
 namespace ds
 {
 
+//! @brief Empty flag type used for blocking overloads
 struct block_query_t
 {
 };
 
+//! @brief Object of type block_query_t for passing into functions for blocking overloads.
 static constexpr auto block_query = block_query_t{};
 
 /**
@@ -91,9 +93,31 @@ class idevice
      */
     [[nodiscard]] virtual auto read_until( as_string_t, timeout_type time, std::string_view delim ) -> std::string = 0;
 
+    /**
+     * @brief Synchronous read of exact number of bytes.
+     *
+     * @param time Timeout duration. If it occurs then an exception is thrown.
+     * @param n Number of bytes to read.
+     *
+     * @return This overload with a dummy parameter as_string_t returns a string type for convenience.
+     */
     [[nodiscard]] virtual auto read_n( as_string_t, std::size_t n, timeout_type ) -> std::string = 0;
+
+    /**
+     * @brief Synchronous read of exact number of bytes.
+     *
+     * @param time Timeout duration. If it occurs then an exception is thrown.
+     * @param n Number of bytes to read.
+     *
+     * @return This overload with a dummy parameter as_vector_t returns a buffer_type.
+     */
     [[nodiscard]] virtual auto read_n( as_vector_t, std::size_t n, timeout_type ) -> buffer_type = 0;
 
+    /**
+     * @brief Synchronous write.
+     *
+     * @param data View into a buffer that is to be written to the device
+     */
     virtual void write( buffer_view data ) = 0; //< This overload will win for a string literal
 
   private:
@@ -130,6 +154,17 @@ class idevice
     }
 
   public:
+    /**
+     * @brief A blocking query. First sends a *OPC? query to the device which blocks until all operations have finished.
+     * Beware the timeout, because some operations may take a long time to complete.
+     *
+     * @tparam commands_t A variadic pack of command queries to concat. The query strings get concatenated into a single
+     * query with '\n' delimeter.
+     *
+     * @param time Timeout for the read operations
+     * @return Returns a std::tuple of results returned by commands_t::query_parser::parse for each response.
+     *
+     */
     template <typename... commands_t>
         requires ( commands_t::has_query && ... )
     auto query( block_query_t, timeout_type time = no_timeout )
@@ -143,6 +178,16 @@ class idevice
         return std::optional{ query_impl<commands_t...>( time ) };
     }
 
+    /**
+     * @brief A non-blocking (for the SCPI device) query operation.
+     *
+     * @tparam commands_t A variadic pack of command queries to concat. The query strings get concatenated into a single
+     * query with '\n' delimeter.
+     *
+     * @param time Timeout for the read operations
+     * @return Returns a std::tuple of results returned by commands_t::query_parser::parse for each response.
+     *
+     */
     template <typename... commands_t>
         requires ( commands_t::has_query && ... )
     auto query( timeout_type time = no_timeout ) -> decltype( query_impl<commands_t...>() )
@@ -222,32 +267,31 @@ lan_device::read_impl( timeout_type timeout, size_t suffix_size, auto async_func
     }
 
     result_t res;
-    auto read_handler = [ this, &res, &timer, suffix_size ](
-                            boost::system::error_code code,
-                            std::size_t num_transferred ) {
-        if ( code == asio::error::operation_aborted )
-        {
-            return;
-        }
+    auto read_handler =
+        [ this, &res, &timer, suffix_size ]( boost::system::error_code code, std::size_t num_transferred ) {
+            if ( code == asio::error::operation_aborted )
+            {
+                return;
+            }
 
-        timer.cancel();
+            timer.cancel();
 
-        if ( code )
-        {
-            throw boost::system::system_error{ code };
-        }
+            if ( code )
+            {
+                throw boost::system::system_error{ code };
+            }
 
-        res.reserve( num_transferred );
-        std::copy_n(
-            std::istreambuf_iterator<char>{ &m_streambuf },
-            num_transferred - suffix_size,
-            std::back_inserter( res ) );
+            res.reserve( num_transferred );
+            std::copy_n(
+                std::istreambuf_iterator<char>{ &m_streambuf },
+                num_transferred - suffix_size,
+                std::back_inserter( res ) );
 
-        std::istream{ &m_streambuf }.ignore(
-            std::numeric_limits<std::streamsize>::max() ); // [NOTE]: Might be error prone
+            std::istream{ &m_streambuf }.ignore(
+                std::numeric_limits<std::streamsize>::max() ); // [NOTE]: Might be error prone
 
-        assert( m_streambuf.size() == 0 && "Buffer should have been emptied" );
-    };
+            assert( m_streambuf.size() == 0 && "Buffer should have been emptied" );
+        };
 
     async_func( m_sock, m_streambuf, read_handler );
     m_service.restart();

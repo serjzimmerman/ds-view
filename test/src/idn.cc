@@ -3,6 +3,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <range/v3/view/cartesian_product.hpp>
+
 #include <algorithm>
 #include <random>
 #include <unordered_map>
@@ -40,25 +42,30 @@ TEST( dslib, idn_model ) // [NOLINT]
     }
 }
 
+static constexpr auto versions = std::array{
+    "00.04.05.SP2",
+    "00.04.04.SP3",
+    "00.04.04.SP1" //
+};
+
+static constexpr auto serial_numbers = std::array{
+    "DS1ZA170XXXXXX",
+    "DS1ZA2XXXXXXXX" //
+};
+
 TEST( dslib, idn_response ) // [NOLINT]
 {
-    const auto versions = std::to_array<std::string_view>( { "00.04.05.SP2", "00.04.04.SP3", "00.04.04.SP1" } );
-    const auto serial_numbers = std::to_array<std::string_view>( { "DS1ZA170XXXXXX", "DS1ZA2XXXXXXXX" } );
-
-    for ( const auto& [ model_name, model ] : names_to_models() )
+    const auto names = names_to_models();
+    for ( auto&& [ model_pair, version, serial ] : ranges::views::cartesian_product( names, versions, serial_numbers ) )
     {
-        for ( const auto& version : versions )
-        {
-            for ( const auto& serial : serial_numbers )
-            {
-                auto response = fmt::format( "RIGOL TECHNOLOGIES,{},{},{}", model_name, serial, version );
-                auto parsed = parser::parse( response );
+        auto&& [ model_name, model ] = model_pair;
 
-                EXPECT_EQ( parsed.model, model );
-                EXPECT_EQ( parsed.serial_number, serial );
-                EXPECT_EQ( parsed.software_version, version );
-            }
-        }
+        auto response = fmt::format( "RIGOL TECHNOLOGIES,{},{},{}", model_name, serial, version );
+        auto parsed = parser::parse( response );
+
+        EXPECT_EQ( parsed.model, model );
+        EXPECT_EQ( parsed.serial_number, serial );
+        EXPECT_EQ( parsed.software_version, version );
     }
 }
 
