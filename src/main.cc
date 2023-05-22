@@ -1,4 +1,5 @@
 #include "dsview/dslib.hpp"
+#include "dsview/dslib/scpi/commands/ds1000.hpp"
 
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -39,4 +40,11 @@ main() -> int
 
     print_info( "First", parsed1 );
     print_info( "Second", parsed2 );
+
+    std::this_thread::sleep_for( 5s );
+    device->submit<ds::scpi::ds1000::stop_cmd>();
+    std::this_thread::sleep_for( 5s );
+    device->submit<ds::scpi::ds1000::run_cmd>();
+    std::this_thread::sleep_for( 1s );
+    device->submit<ds::scpi::ds1000::auto_cmd>();
 }

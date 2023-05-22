@@ -38,6 +38,38 @@ enum class ds_model
     e_ds1054z         //!< DS1054Z
 };
 
+//! @brief Scope series
+enum class ds_series
+{
+    e_ds1000, //!< DS1000 Oscilloscope series
+};
+
+constexpr auto
+get_model_series( ds_model model ) -> ds_series
+{
+    switch ( model )
+    {
+    case ds_model::e_mso1104z_s:
+        [[fallthrough]];
+    case ds_model::e_mso1074z_s:
+        [[fallthrough]];
+    case ds_model::e_mso1104z:
+        [[fallthrough]];
+    case ds_model::e_mso1074z:
+        [[fallthrough]];
+    case ds_model::e_ds1104z_s_plus:
+        [[fallthrough]];
+    case ds_model::e_ds1074z_s_plus:
+        [[fallthrough]];
+    case ds_model::e_ds1104z_plus:
+        [[fallthrough]];
+    case ds_model::e_ds1074z_plus:
+        [[fallthrough]];
+    case ds_model::e_ds1054z:
+        return ds_series::e_ds1000;
+    }
+}
+
 //! Convert model to a readable name. These names are taken from the technical documentaion.
 [[nodiscard]] constexpr auto
 to_string( ds_model model ) -> std::string_view
@@ -193,5 +225,29 @@ get_model_capabilities( ds_model model ) -> model_capabilities
 
     return found->second;
 }
+
+class scope_info
+{
+    constexpr scope_info( ds_model model ) 
+        : m_model{ model },
+          m_series{ get_model_series( model ) },
+          m_capabilities{ get_model_capabilities( model ) }
+    {
+    }
+
+    constexpr scope_info( std::string_view name )
+        : scope_info{ to_model( name ) }
+    {
+    }
+
+    [[nodiscard]] auto model() const -> ds_model { return m_model; }
+    [[nodiscard]] auto series() const -> ds_series { return m_series; }
+    [[nodiscard]] auto capabilities() const -> model_capabilities { return m_capabilities; }
+
+  private:
+    ds_model m_model;
+    ds_series m_series;
+    model_capabilities m_capabilities;
+};
 
 } // namespace ds
