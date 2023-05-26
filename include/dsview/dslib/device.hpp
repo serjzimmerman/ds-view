@@ -190,7 +190,7 @@ class idevice
      */
     template <typename... commands_t>
         requires ( commands_t::has_query && ... )
-    auto query( timeout_type time = no_timeout ) -> decltype( query_impl<commands_t...>() )
+    auto query( timeout_type time = default_timeout ) -> decltype( query_impl<commands_t...>() )
     {
         return query_impl<commands_t...>( time );
     }

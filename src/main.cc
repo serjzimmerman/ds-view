@@ -6,6 +6,7 @@
 
 #include <array>
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -16,10 +17,10 @@ using namespace std::literals;
 auto
 main() -> int
 {
-    using ds::scpi::common::idn_cmd;
+    using namespace ds::scpi;
 
     auto device = std::make_unique<ds::lan_device>( "192.168.50.78" );
-    auto res = device->query<idn_cmd, idn_cmd>( ds::block_query );
+    auto res = device->query<common::idn_cmd, common::idn_cmd>( ds::block_query );
 
     if ( !res )
     {
@@ -41,10 +42,6 @@ main() -> int
     print_info( "First", parsed1 );
     print_info( "Second", parsed2 );
 
-    std::this_thread::sleep_for( 5s );
-    device->submit<ds::scpi::ds1000::stop_cmd>();
-    std::this_thread::sleep_for( 5s );
-    device->submit<ds::scpi::ds1000::run_cmd>();
-    std::this_thread::sleep_for( 1s );
-    device->submit<ds::scpi::ds1000::auto_cmd>();
+    auto screenshot = device->query<ds1000::display::data_cmd>();
+    std::ofstream{ "screenshot.bmp32" } << screenshot;
 }

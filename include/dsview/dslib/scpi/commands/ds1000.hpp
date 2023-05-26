@@ -10,4 +10,5 @@
 #pragma once
 
 #include "common.hpp"
+#include "ds1000/display.hpp"
 #include "ds1000/global.hpp"

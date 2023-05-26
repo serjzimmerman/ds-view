@@ -15,6 +15,8 @@
 #include <fmt/format.h>
 
 #include <concepts>
+#include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -51,6 +53,11 @@ concept scpi_query_parser = requires {
     requires !std::is_void_v<decltype(T::parse(std::declval<std::string_view>()))>;
 };
 // clang-format on
+
+template <typename ret_t = std::string> struct passthrough_parser
+{
+    static auto parse( std::string_view result ) -> ret_t { return ret_t{ result }; }
+};
 
 template <
     scpi_category category_t,
